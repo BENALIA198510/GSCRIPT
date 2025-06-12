@@ -48,6 +48,58 @@ const CONFIG = {
   CACHE_DURATION: 300, // Cache duration in seconds (5 minutes)
   OTP_LENGTH: 6, // Length of the One-Time Password
 };
+
+// ======================= HELPER UTILITIES =======================
+/**
+ * Returns the shared script cache instance.
+ * @returns {GoogleAppsScript.Cache.Cache}
+ */
+function getCache() {
+  return CacheService.getScriptCache();
+}
+
+/**
+ * Logs an error and returns a standard error response.
+ * @param {string} context - Description of where the error occurred.
+ * @param {Error} error - The caught error object.
+ * @returns {{success:boolean, message:string}}
+ */
+function handleServerError(context, error) {
+  logError(context, error);
+  return {
+    success: false,
+    message: 'خطأ في الخادم: ' + error.message,
+  };
+}
+
+/**
+ * Retrieves the row index and data for a user based on email.
+ * @param {string} email - User email.
+ * @returns {{row:number, data:Array}|null}
+ */
+function getUserRow(email) {
+  const sheet = getSheet(SHEET_NAMES.LOGIN);
+  const data = sheet.getDataRange().getValues();
+  const normalizedEmail = email.trim().toLowerCase();
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][SHEET_COLUMNS.LOGIN.EMAIL] === normalizedEmail) {
+      return { row: i + 1, data: data[i] };
+    }
+  }
+  return null;
+}
+
+/**
+ * Paginates an array of records.
+ * @param {Array} list - Full list of records.
+ * @param {number} page - Current page number (1-based).
+ * @param {number} perPage - Records per page.
+ * @returns {Array} Slice of the list for the requested page.
+ */
+function paginate(list, page, perPage) {
+  const start = (page - 1) * perPage;
+  return list.slice(start, start + perPage);
+}
 // ======================= WEB APP ENTRY POINTS =======================
 /**
  * Main entry point for the web app when a user accesses the URL.
@@ -116,38 +168,27 @@ function userLogin(email, password) {
         message: 'البريد الإلكتروني وكلمة المرور مطلوبان'
       };
     }
-    const sheet = getSheet(SHEET_NAMES.LOGIN);
-    const data = sheet.getDataRange().getValues();
-    const normalizedEmail = email.trim().toLowerCase();
-    // Iterate through user records to find a match
-    for (let i = 1; i < data.length; i++) {
-      if (data[i][SHEET_COLUMNS.LOGIN.EMAIL] === normalizedEmail) {
-        const hashedInput = hashPassword(password);
-        if (data[i][SHEET_COLUMNS.LOGIN.PASSWORD] === hashedInput) {
-          logDebug('Successful login for:', email);
-          return {
-            success: true,
-            userType: data[i][SHEET_COLUMNS.LOGIN.USER_TYPE] || 'User',
-          };
-        } else {
-          logDebug('Invalid password for:', email);
-          return {
-            success: false,
-            message: 'كلمة المرور غير صحيحة'
-          };
-        }
-      }
+    const user = getUserRow(email);
+    if (!user) {
+      return { success: false, message: 'البريد الإلكتروني غير موجود' };
     }
+
+    const hashedInput = hashPassword(password);
+    if (user.data[SHEET_COLUMNS.LOGIN.PASSWORD] === hashedInput) {
+      logDebug('Successful login for:', email);
+      return {
+        success: true,
+        userType: user.data[SHEET_COLUMNS.LOGIN.USER_TYPE] || 'User',
+      };
+    }
+
+    logDebug('Invalid password for:', email);
     return {
       success: false,
-      message: 'البريد الإلكتروني غير موجود'
+      message: 'كلمة المرور غير صحيحة'
     };
   } catch (error) {
-    logError('Login error:', error);
-    return {
-      success: false,
-      message: 'خطأ في الخادم: ' + error.message
-    };
+    return handleServerError('Login error', error);
   }
 }
 /**
@@ -172,11 +213,8 @@ function registerUser(email, password) {
       };
     }
     const sheet = getSheet(SHEET_NAMES.LOGIN);
-    const data = sheet.getDataRange().getValues();
     const normalizedEmail = email.trim().toLowerCase();
-    // Check if email already exists
-    const emailExists = data.slice(1).some(row => row[SHEET_COLUMNS.LOGIN.EMAIL] === normalizedEmail);
-    if (emailExists) {
+    if (getUserRow(normalizedEmail)) {
       return {
         success: false,
         message: 'البريد الإلكتروني مستخدم بالفعل'
@@ -191,11 +229,7 @@ function registerUser(email, password) {
       message: 'تم التسجيل بنجاح'
     };
   } catch (error) {
-    logError('Registration error:', error);
-    return {
-      success: false,
-      message: 'خطأ في التسجيل: ' + error.message
-    };
+    return handleServerError('Registration error', error);
   }
 }
 /**
@@ -212,37 +246,24 @@ function forgotPasswordRequest(email) {
         message: 'البريد الإلكتروني مطلوب'
       };
     }
-    const sheet = getSheet(SHEET_NAMES.LOGIN);
-    const data = sheet.getDataRange().getValues();
-    const normalizedEmail = email.trim().toLowerCase();
-    for (let i = 1; i < data.length; i++) {
-      if (data[i][SHEET_COLUMNS.LOGIN.EMAIL] === normalizedEmail) {
-        const otp = generateOTP();
-        // Store OTP in the sheet; it's temporary and cleared on use
-        sheet.getRange(i + 1, SHEET_COLUMNS.LOGIN.OTP + 1).setValue(otp);
-        // Send OTP via email
-        MailApp.sendEmail({
-          to: email,
-          subject: 'رمز إعادة تعيين كلمة المرور - نظام التدريب الميداني',
-          body: `مرحباً،\n\nرمز التأكيد الخاص بك هو: ${otp}\n\nهذا الرمز صالح لمرة واحدة فقط ولمدة محدودة.\n\nإذا لم تطلب إعادة تعيين كلمة المرور، يرجى تجاهل هذه الرسالة.\n\nشكراً،\nفريق نظام التدريب الميداني`
-        });
-        logDebug('OTP sent successfully to:', email);
-        return {
-          success: true,
-          message: 'تم إرسال رمز التأكيد إلى بريدك الإلكتروني'
-        };
-      }
+    const user = getUserRow(email);
+    if (!user) {
+      return { success: false, message: 'البريد الإلكتروني غير موجود' };
     }
-    return {
-      success: false,
-      message: 'البريد الإلكتروني غير موجود'
-    };
+
+    const otp = generateOTP();
+    const sheet = getSheet(SHEET_NAMES.LOGIN);
+    sheet.getRange(user.row, SHEET_COLUMNS.LOGIN.OTP + 1).setValue(otp);
+
+    MailApp.sendEmail({
+      to: email,
+      subject: 'رمز إعادة تعيين كلمة المرور - نظام التدريب الميداني',
+      body: `مرحباً،\n\nرمز التأكيد الخاص بك هو: ${otp}\n\nهذا الرمز صالح لمرة واحدة فقط ولمدة محدودة.\n\nإذا لم تطلب إعادة تعيين كلمة المرور، يرجى تجاهل هذه الرسالة.\n\nشكراً،\nفريق نظام التدريب الميداني`
+    });
+    logDebug('OTP sent successfully to:', email);
+    return { success: true, message: 'تم إرسال رمز التأكيد إلى بريدك الإلكتروني' };
   } catch (error) {
-    logError('Password reset request error:', error);
-    return {
-      success: false,
-      message: 'خطأ في إرسال الرمز: ' + error.message
-    };
+    return handleServerError('Password reset request error', error);
   }
 }
 /**
@@ -267,33 +288,23 @@ function forgotPasswordVerify(email, otp, newPassword) {
         message: 'كلمة المرور يجب أن تكون 6 أحرف على الأقل'
       };
     }
-    const sheet = getSheet(SHEET_NAMES.LOGIN);
-    const data = sheet.getDataRange().getValues();
-    const normalizedEmail = email.trim().toLowerCase();
-    for (let i = 1; i < data.length; i++) {
-      // Check if both email and OTP match
-      if (data[i][SHEET_COLUMNS.LOGIN.EMAIL] === normalizedEmail && data[i][SHEET_COLUMNS.LOGIN.OTP].toString().trim() === otp.trim()) {
-        const hashedPassword = hashPassword(newPassword);
-        // Update password and clear OTP
-        sheet.getRange(i + 1, SHEET_COLUMNS.LOGIN.PASSWORD + 1).setValue(hashedPassword);
-        sheet.getRange(i + 1, SHEET_COLUMNS.LOGIN.OTP + 1).setValue(''); // Clear OTP after use
-        logDebug('Password reset successful for:', email);
-        return {
-          success: true,
-          message: 'تم تغيير كلمة المرور بنجاح'
-        };
-      }
+    const user = getUserRow(email);
+    if (!user) {
+      return { success: false, message: 'رمز التأكيد غير صحيح أو منتهي الصلاحية' };
     }
-    return {
-      success: false,
-      message: 'رمز التأكيد غير صحيح أو منتهي الصلاحية'
-    };
+    const storedOtp = String(user.data[SHEET_COLUMNS.LOGIN.OTP] || '').trim();
+    if (storedOtp !== otp.trim()) {
+      return { success: false, message: 'رمز التأكيد غير صحيح أو منتهي الصلاحية' };
+    }
+
+    const hashedPassword = hashPassword(newPassword);
+    const sheet = getSheet(SHEET_NAMES.LOGIN);
+    sheet.getRange(user.row, SHEET_COLUMNS.LOGIN.PASSWORD + 1).setValue(hashedPassword);
+    sheet.getRange(user.row, SHEET_COLUMNS.LOGIN.OTP + 1).setValue('');
+    logDebug('Password reset successful for:', email);
+    return { success: true, message: 'تم تغيير كلمة المرور بنجاح' };
   } catch (error) {
-    logError('Password reset verification error:', error);
-    return {
-      success: false,
-      message: 'خطأ في تغيير كلمة المرور: ' + error.message
-    };
+    return handleServerError('Password reset verification error', error);
   }
 }
 /**
@@ -303,11 +314,8 @@ function forgotPasswordVerify(email, otp, newPassword) {
  */
 function isAdmin(email) {
   try {
-    const sheet = getSheet(SHEET_NAMES.LOGIN);
-    const data = sheet.getDataRange().getValues();
-    const normalizedEmail = email.trim().toLowerCase();
-    const userRow = data.find(row => row[SHEET_COLUMNS.LOGIN.EMAIL] === normalizedEmail);
-    return userRow ? userRow[SHEET_COLUMNS.LOGIN.USER_TYPE] === 'Admin' : false;
+    const user = getUserRow(email);
+    return user ? user.data[SHEET_COLUMNS.LOGIN.USER_TYPE] === 'Admin' : false;
   } catch (error) {
     logError('Admin check error:', error);
     return false;
@@ -320,7 +328,7 @@ function isAdmin(email) {
  * @returns {object} An object containing structured data for dropdowns.
  */
 function getDropdownOptions() {
-  const cache = CacheService.getScriptCache();
+  const cache = getCache();
   const cacheKey = 'dropdownOptions';
   const cached = cache.get(cacheKey);
   if (cached && !CONFIG.DEBUG) {
@@ -455,7 +463,7 @@ function getData(email, userType, filterSpecialite, filterGroupe, filterNom, fil
  * @returns {object} An object with summary statistics.
  */
 function getSummaryStats(email, userType) {
-  const cache = CacheService.getScriptCache();
+  const cache = getCache();
   // Admins see all stats, so their cache key is shared.
   // Regular users now also see all data, so everyone can share the admin cache key.
   const cacheKey = 'summary_stats_Admin'; 
@@ -501,7 +509,7 @@ function getSummaryStats(email, userType) {
  * @param {string} email - The email of the user performing the action.
  */
 function invalidateCaches(email) {
-  const cache = CacheService.getScriptCache();
+  const cache = getCache();
   logDebug('Invalidating caches...');
   cache.remove('dropdownOptions'); // Dropdowns might change
   cache.remove('summary_stats_Admin'); // Stats will change for everyone
@@ -548,11 +556,7 @@ function createRecord(dataObj, email) {
       message: 'تم إضافة السجل بنجاح'
     };
   } catch (error) {
-    logError('Create record error:', error);
-    return {
-      success: false,
-      message: 'خطأ في إضافة السجل: ' + error.message
-    };
+    return handleServerError('Create record error', error);
   }
 }
 /**
@@ -613,11 +617,7 @@ function updateRecord(dataObj, email) {
       message: 'تم تحديث السجل بنجاح'
     };
   } catch (error) {
-    logError('Update record error:', error);
-    return {
-      success: false,
-      message: 'خطأ في تحديث السجل: ' + error.message
-    };
+    return handleServerError('Update record error', error);
   }
 }
 /**
@@ -656,11 +656,7 @@ function deleteRecord(rowIndex, email) {
       message: 'تم حذف السجل بنجاح'
     };
   } catch (error) {
-    logError('Delete record error:', error);
-    return {
-      success: false,
-      message: 'خطأ في حذف السجل: ' + error.message
-    };
+    return handleServerError('Delete record error', error);
   }
 }
 // ======================= EXPORT TO PDF =======================

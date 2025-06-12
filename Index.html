@@ -1,0 +1,1715 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>نظام إدارة التدريب الميداني</title>
+    
+    <!-- Materialize CSS -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css" rel="stylesheet">
+    <!-- Material Icons -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <!-- Tom-Select CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.css" rel="stylesheet">
+    <!-- Cairo Font for Arabic -->
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        * {
+            font-family: 'Cairo', sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .main-container {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            margin: 20px;
+            overflow: hidden;
+        }
+        
+        .header-section {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .stats-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            padding: 30px;
+            background: #f8f9fa;
+        }
+        
+        .stat-card {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .stat-card.students { border-top: 4px solid #4CAF50; }
+        .stat-card.specialties { border-top: 4px solid #2196F3; }
+        .stat-card.hours { border-top: 4px solid #FF9800; }
+        .stat-card.institutions { border-top: 4px solid #9C27B0; }
+        
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin: 10px 0;
+        }
+        
+        .filters-section {
+            padding: 30px;
+            background: white;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .filter-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .data-section {
+            padding: 30px;
+            background: white;
+        }
+        
+        .table-container {
+            overflow-x: auto;
+            margin-top: 20px;
+        }
+        
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .data-table th {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 10px;
+            text-align: center;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+        
+        .data-table td {
+            padding: 12px 10px;
+            text-align: center;
+            border-bottom: 1px solid #eee;
+            font-size: 0.85rem;
+        }
+        
+        .data-table tbody tr:hover {
+            background-color: #f5f5f5;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 5px;
+            justify-content: center;
+        }
+        
+        .btn-small {
+            padding: 5px 10px;
+            font-size: 0.8rem;
+            border-radius: 4px;
+        }
+        
+        .pagination-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-top: 20px;
+            gap: 10px;
+        }
+        
+        .modal {
+            max-height: 90%;
+        }
+        
+        .modal-content {
+            padding: 30px;
+        }
+        
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+        
+        .loading-content {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        
+        .hidden { display: none !important; }
+        
+        .tom-select .ts-control {
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 8px 12px;
+        }
+        
+        .export-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        @media (max-width: 768px) {
+            .main-container {
+                margin: 10px;
+            }
+            
+            .stats-container {
+                grid-template-columns: 1fr;
+                padding: 20px;
+            }
+            
+            .filter-row {
+                grid-template-columns: 1fr;
+            }
+            
+            .data-table {
+                font-size: 0.75rem;
+            }
+            
+            .data-table th,
+            .data-table td {
+                padding: 8px 5px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay hidden">
+        <div class="loading-content">
+            <div class="preloader-wrapper active">
+                <div class="spinner-layer spinner-blue-only">
+                    <div class="circle-clipper left">
+                        <div class="circle"></div>
+                    </div>
+                    <div class="gap-patch">
+                        <div class="circle"></div>
+                    </div>
+                    <div class="circle-clipper right">
+                        <div class="circle"></div>
+                    </div>
+                </div>
+            </div>
+            <p>جاري التحميل...</p>
+        </div>
+    </div>
+
+    <!-- Login Section -->
+    <div id="loginSection" class="container">
+        <div class="row">
+            <div class="col s12 m8 l6 offset-m2 offset-l3">
+                <div class="card" style="margin-top: 100px;">
+                    <div class="card-content">
+                        <span class="card-title center-align">تسجيل الدخول</span>
+                        <form id="loginForm">
+                            <div class="input-field">
+                                <input id="loginEmail" type="email" class="validate" required>
+                                <label for="loginEmail">البريد الإلكتروني</label>
+                            </div>
+                            <div class="input-field">
+                                <input id="loginPassword" type="password" class="validate" required>
+                                <label for="loginPassword">كلمة المرور</label>
+                            </div>
+                            <div class="center-align">
+                                <button class="btn waves-effect waves-light" type="submit">
+                                    دخول
+                                    <i class="material-icons left">login</i>
+                                </button>
+                            </div>
+                        </form>
+                        <div class="center-align" style="margin-top: 20px;">
+                            <a href="#" id="showRegister">إنشاء حساب جديد</a> |
+                            <a href="#" id="showForgotPassword">نسيت كلمة المرور؟</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Register Section -->
+    <div id="registerSection" class="container hidden">
+        <div class="row">
+            <div class="col s12 m8 l6 offset-m2 offset-l3">
+                <div class="card" style="margin-top: 100px;">
+                    <div class="card-content">
+                        <span class="card-title center-align">إنشاء حساب جديد</span>
+                        <form id="registerForm">
+                            <div class="input-field">
+                                <input id="registerEmail" type="email" class="validate" required>
+                                <label for="registerEmail">البريد الإلكتروني</label>
+                            </div>
+                            <div class="input-field">
+                                <input id="registerPassword" type="password" class="validate" required minlength="6">
+                                <label for="registerPassword">كلمة المرور (6 أحرف على الأقل)</label>
+                            </div>
+                            <div class="center-align">
+                                <button class="btn waves-effect waves-light" type="submit">
+                                    تسجيل
+                                    <i class="material-icons left">person_add</i>
+                                </button>
+                            </div>
+                        </form>
+                        <div class="center-align" style="margin-top: 20px;">
+                            <a href="#" id="showLogin">العودة لتسجيل الدخول</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Forgot Password Section -->
+    <div id="forgotPasswordSection" class="container hidden">
+        <div class="row">
+            <div class="col s12 m8 l6 offset-m2 offset-l3">
+                <div class="card" style="margin-top: 100px;">
+                    <div class="card-content">
+                        <span class="card-title center-align">استعادة كلمة المرور</span>
+                        <form id="forgotPasswordForm">
+                            <div class="input-field">
+                                <input id="forgotEmail" type="email" class="validate" required>
+                                <label for="forgotEmail">البريد الإلكتروني</label>
+                            </div>
+                            <div class="center-align">
+                                <button class="btn waves-effect waves-light" type="submit">
+                                    إرسال رمز التأكيد
+                                    <i class="material-icons left">send</i>
+                                </button>
+                            </div>
+                        </form>
+                        
+                        <div id="otpSection" class="hidden" style="margin-top: 30px;">
+                            <form id="otpForm">
+                                <div class="input-field">
+                                    <input id="otpCode" type="text" class="validate" required>
+                                    <label for="otpCode">رمز التأكيد</label>
+                                </div>
+                                <div class="input-field">
+                                    <input id="newPassword" type="password" class="validate" required minlength="6">
+                                    <label for="newPassword">كلمة المرور الجديدة</label>
+                                </div>
+                                <div class="center-align">
+                                    <button class="btn waves-effect waves-light" type="submit">
+                                        تغيير كلمة المرور
+                                        <i class="material-icons left">lock_reset</i>
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                        
+                        <div class="center-align" style="margin-top: 20px;">
+                            <a href="#" id="backToLogin">العودة لتسجيل الدخول</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Dashboard -->
+    <div id="dashboardSection" class="hidden">
+        <div class="main-container">
+            <!-- Header -->
+            <div class="header-section">
+                <h4>نظام إدارة التدريب الميداني</h4>
+                <p>مرحباً <span id="userEmail"></span> - <span id="userType"></span></p>
+                <button class="btn red lighten-1 waves-effect waves-light" onclick="logout()">
+                    تسجيل الخروج
+                    <i class="material-icons left">logout</i>
+                </button>
+            </div>
+
+            <!-- Statistics -->
+            <div class="stats-container">
+                <div class="stat-card students">
+                    <i class="material-icons" style="font-size: 3rem; color: #4CAF50;">school</i>
+                    <div class="stat-number" id="totalStudents">0</div>
+                    <div>إجمالي الطلاب</div>
+                </div>
+                <div class="stat-card specialties">
+                    <i class="material-icons" style="font-size: 3rem; color: #2196F3;">category</i>
+                    <div class="stat-number" id="totalSpecialties">0</div>
+                    <div>التخصصات</div>
+                </div>
+                <div class="stat-card hours">
+                    <i class="material-icons" style="font-size: 3rem; color: #FF9800;">schedule</i>
+                    <div class="stat-number" id="totalHours">0</div>
+                    <div>إجمالي الساعات</div>
+                </div>
+                <div class="stat-card institutions">
+                    <i class="material-icons" style="font-size: 3rem; color: #9C27B0;">business</i>
+                    <div class="stat-number" id="totalInstitutions">0</div>
+                    <div>المؤسسات</div>
+                </div>
+            </div>
+
+            <!-- Filters -->
+            <div class="filters-section">
+                <h5>البحث والتصفية</h5>
+                <div class="filter-row">
+                    <div class="input-field">
+                        <select id="filterSpecialite">
+                            <option value="">جميع التخصصات</option>
+                        </select>
+                        <label>التخصص</label>
+                    </div>
+                    <div class="input-field">
+                        <select id="filterGroupe">
+                            <option value="">جميع المجموعات</option>
+                        </select>
+                        <label>المجموعة</label>
+                    </div>
+                    <div class="input-field">
+                        <select id="filterNom">
+                            <option value="">جميع الأسماء</option>
+                        </select>
+                        <label>الاسم</label>
+                    </div>
+                </div>
+                <div class="filter-row">
+                    <div class="input-field">
+                        <select id="filterCommune">
+                            <option value="">جميع الجماعات</option>
+                        </select>
+                        <label>الجماعة</label>
+                    </div>
+                    <div class="input-field">
+                        <select id="filterEtab">
+                            <option value="">جميع المؤسسات</option>
+                        </select>
+                        <label>المؤسسة</label>
+                    </div>
+                    <div class="input-field">
+                        <select id="filterEnc">
+                            <option value="">جميع المشرفين</option>
+                        </select>
+                        <label>المشرف</label>
+                    </div>
+                </div>
+                <div class="filter-row">
+                    <div class="input-field">
+                        <input type="date" id="dateFrom">
+                        <label for="dateFrom">من تاريخ</label>
+                    </div>
+                    <div class="input-field">
+                        <input type="date" id="dateTo">
+                        <label for="dateTo">إلى تاريخ</label>
+                    </div>
+                    <div class="input-field">
+                        <input type="text" id="searchText" placeholder="البحث في جميع الحقول...">
+                        <label for="searchText">البحث النصي</label>
+                    </div>
+                </div>
+                <div class="center-align">
+                    <button class="btn waves-effect waves-light" onclick="loadData()">
+                        تطبيق التصفية
+                        <i class="material-icons left">search</i>
+                    </button>
+                    <button class="btn grey waves-effect waves-light" onclick="clearFilters()">
+                        مسح التصفية
+                        <i class="material-icons left">clear</i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Data Section -->
+            <div class="data-section">
+                <div class="row">
+                    <div class="col s12">
+                        <div class="export-buttons">
+                            <button class="btn green waves-effect waves-light" onclick="exportToCSV()">
+                                تصدير CSV
+                                <i class="material-icons left">file_download</i>
+                            </button>
+                            <button class="btn blue waves-effect waves-light" onclick="exportToPDF()">
+                                تصدير PDF
+                                <i class="material-icons left">picture_as_pdf</i>
+                            </button>
+                            <button id="addRecordBtn" class="btn orange waves-effect waves-light hidden" onclick="showAddModal()">
+                                إضافة سجل
+                                <i class="material-icons left">add</i>
+                            </button>
+                        </div>
+                        
+                        <div class="table-container">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>التخصص</th>
+                                        <th>المجموعة</th>
+                                        <th>الاسم الكامل</th>
+                                        <th>ر.ب.و</th>
+                                        <th>تاريخ التدريب</th>
+                                        <th>عدد الساعات</th>
+                                        <th>الجماعة</th>
+                                        <th>المؤسسة</th>
+                                        <th>اسم المشرف</th>
+                                        <th>ر. تأجير المشرف</th>
+                                        <th id="actionsHeader" class="hidden">الإجراءات</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="dataTableBody">
+                                    <tr>
+                                        <td colspan="11" class="center-align">
+                                            <div class="preloader-wrapper active">
+                                                <div class="spinner-layer spinner-blue-only">
+                                                    <div class="circle-clipper left">
+                                                        <div class="circle"></div>
+                                                    </div>
+                                                    <div class="gap-patch">
+                                                        <div class="circle"></div>
+                                                    </div>
+                                                    <div class="circle-clipper right">
+                                                        <div class="circle"></div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <p>جاري تحميل البيانات...</p>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <div class="pagination-container">
+                            <button class="btn-flat waves-effect" onclick="previousPage()" id="prevBtn" disabled>
+                                <i class="material-icons">chevron_right</i>
+                            </button>
+                            <span id="pageInfo">صفحة 1 من 1</span>
+                            <button class="btn-flat waves-effect" onclick="nextPage()" id="nextBtn" disabled>
+                                <i class="material-icons">chevron_left</i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit Record Modal -->
+    <div id="recordModal" class="modal">
+        <div class="modal-content">
+            <h4 id="modalTitle">إضافة سجل جديد</h4>
+            <form id="recordForm">
+                <input type="hidden" id="recordRowIndex">
+                <div class="form-row">
+                    <div class="input-field">
+                        <select id="modalSpecialite" required>
+                            <option value="">اختر التخصص</option>
+                        </select>
+                        <label>التخصص *</label>
+                    </div>
+                    <div class="input-field">
+                        <select id="modalGroupe" required>
+                            <option value="">اختر المجموعة</option>
+                        </select>
+                        <label>المجموعة *</label>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="input-field">
+                        <select id="modalNomPrenom" required>
+                            <option value="">اختر الاسم</option>
+                        </select>
+                        <label>الاسم الكامل *</label>
+                    </div>
+                    <div class="input-field">
+                        <input type="text" id="modalCin" required>
+                        <label for="modalCin">رقم البطاقة الوطنية *</label>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="input-field">
+                        <input type="date" id="modalDateStage" required>
+                        <label for="modalDateStage">تاريخ التدريب *</label>
+                    </div>
+                    <div class="input-field">
+                        <input type="number" id="modalNombreHeures" min="1" required>
+                        <label for="modalNombreHeures">عدد الساعات *</label>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="input-field">
+                        <select id="modalCommune" required>
+                            <option value="">اختر الجماعة</option>
+                        </select>
+                        <label>الجماعة *</label>
+                    </div>
+                    <div class="input-field">
+                        <select id="modalEtablissement" required>
+                            <option value="">اختر المؤسسة</option>
+                        </select>
+                        <label>المؤسسة *</label>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="input-field">
+                        <select id="modalNomEncadrant" required>
+                            <option value="">اختر المشرف</option>
+                        </select>
+                        <label>اسم المشرف *</label>
+                    </div>
+                    <div class="input-field">
+                        <input type="text" id="modalPprEncadrant" required>
+                        <label for="modalPprEncadrant">رقم تأجير المشرف *</label>
+                    </div>
+                </div>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button class="modal-close waves-effect waves-red btn-flat">إلغاء</button>
+            <button class="waves-effect waves-green btn" onclick="saveRecord()">حفظ</button>
+        </div>
+    </div>
+
+    <!-- Materialize JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+    <!-- Tom-Select JS -->
+    <script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
+
+    <script>
+        // Global variables
+        let currentUser = null;
+        let currentUserType = null;
+        let allData = [];
+        let filteredData = [];
+        let dropdownOptions = {};
+        let currentPage = 1;
+        let recordsPerPage = 10;
+        let tomSelects = {};
+
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize Materialize components
+            M.AutoInit();
+            
+            // Initialize modals
+            const modals = document.querySelectorAll('.modal');
+            M.Modal.init(modals);
+            
+            // Set up event listeners
+            setupEventListeners();
+            
+            // Show login section by default
+            showSection('loginSection');
+        });
+
+        function setupEventListeners() {
+            // Login form
+            document.getElementById('loginForm').addEventListener('submit', handleLogin);
+            
+            // Register form
+            document.getElementById('registerForm').addEventListener('submit', handleRegister);
+            
+            // Forgot password forms
+            document.getElementById('forgotPasswordForm').addEventListener('submit', handleForgotPassword);
+            document.getElementById('otpForm').addEventListener('submit', handleOTPVerification);
+            
+            // Navigation links
+            document.getElementById('showRegister').addEventListener('click', (e) => {
+                e.preventDefault();
+                showSection('registerSection');
+            });
+            
+            document.getElementById('showLogin').addEventListener('click', (e) => {
+                e.preventDefault();
+                showSection('loginSection');
+            });
+            
+            document.getElementById('showForgotPassword').addEventListener('click', (e) => {
+                e.preventDefault();
+                showSection('forgotPasswordSection');
+            });
+            
+            document.getElementById('backToLogin').addEventListener('click', (e) => {
+                e.preventDefault();
+                showSection('loginSection');
+            });
+            
+            // Search input
+            document.getElementById('searchText').addEventListener('input', debounce(loadData, 500));
+            
+            // Date filters
+            document.getElementById('dateFrom').addEventListener('change', loadData);
+            document.getElementById('dateTo').addEventListener('change', loadData);
+        }
+
+        function showSection(sectionId) {
+            const sections = ['loginSection', 'registerSection', 'forgotPasswordSection', 'dashboardSection'];
+            sections.forEach(id => {
+                document.getElementById(id).classList.add('hidden');
+            });
+            document.getElementById(sectionId).classList.remove('hidden');
+        }
+
+        function showLoading(show = true) {
+            const overlay = document.getElementById('loadingOverlay');
+            if (show) {
+                overlay.classList.remove('hidden');
+            } else {
+                overlay.classList.add('hidden');
+            }
+        }
+
+        function showToast(message, type = 'info') {
+            const color = type === 'error' ? 'red' : type === 'success' ? 'green' : 'blue';
+            M.toast({html: message, classes: color});
+        }
+
+        // Authentication functions
+        async function handleLogin(e) {
+            e.preventDefault();
+            const email = document.getElementById('loginEmail').value.trim();
+            const password = document.getElementById('loginPassword').value;
+            
+            if (!email || !password) {
+                showToast('يرجى ملء جميع الحقول', 'error');
+                return;
+            }
+            
+            showLoading(true);
+            
+            try {
+                const result = await new Promise((resolve, reject) => {
+                    google.script.run
+                        .withSuccessHandler(resolve)
+                        .withFailureHandler(reject)
+                        .userLogin(email, password);
+                });
+                
+                if (result.success) {
+                    currentUser = email;
+                    currentUserType = result.userType;
+                    document.getElementById('userEmail').textContent = email;
+                    document.getElementById('userType').textContent = result.userType === 'Admin' ? 'مدير' : 'مستخدم';
+                    
+                    // Show admin features if user is admin
+                    if (result.userType === 'Admin') {
+                        document.getElementById('addRecordBtn').classList.remove('hidden');
+                        document.getElementById('actionsHeader').classList.remove('hidden');
+                    }
+                    
+                    showSection('dashboardSection');
+                    await initializeDashboard();
+                    showToast('تم تسجيل الدخول بنجاح', 'success');
+                } else {
+                    showToast(result.message, 'error');
+                }
+            } catch (error) {
+                console.error('Login error:', error);
+                showToast('خطأ في الاتصال بالخادم', 'error');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        async function handleRegister(e) {
+            e.preventDefault();
+            const email = document.getElementById('registerEmail').value.trim();
+            const password = document.getElementById('registerPassword').value;
+            
+            if (!email || !password) {
+                showToast('يرجى ملء جميع الحقول', 'error');
+                return;
+            }
+            
+            if (password.length < 6) {
+                showToast('كلمة المرور يجب أن تكون 6 أحرف على الأقل', 'error');
+                return;
+            }
+            
+            showLoading(true);
+            
+            try {
+                const result = await new Promise((resolve, reject) => {
+                    google.script.run
+                        .withSuccessHandler(resolve)
+                        .withFailureHandler(reject)
+                        .registerUser(email, password);
+                });
+                
+                if (result.success) {
+                    showToast(result.message, 'success');
+                    showSection('loginSection');
+                    document.getElementById('loginEmail').value = email;
+                } else {
+                    showToast(result.message, 'error');
+                }
+            } catch (error) {
+                console.error('Register error:', error);
+                showToast('خطأ في الاتصال بالخادم', 'error');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        async function handleForgotPassword(e) {
+            e.preventDefault();
+            const email = document.getElementById('forgotEmail').value.trim();
+            
+            if (!email) {
+                showToast('يرجى إدخال البريد الإلكتروني', 'error');
+                return;
+            }
+            
+            showLoading(true);
+            
+            try {
+                const result = await new Promise((resolve, reject) => {
+                    google.script.run
+                        .withSuccessHandler(resolve)
+                        .withFailureHandler(reject)
+                        .forgotPasswordRequest(email);
+                });
+                
+                if (result.success) {
+                    showToast(result.message, 'success');
+                    document.getElementById('otpSection').classList.remove('hidden');
+                } else {
+                    showToast(result.message, 'error');
+                }
+            } catch (error) {
+                console.error('Forgot password error:', error);
+                showToast('خطأ في الاتصال بالخادم', 'error');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        async function handleOTPVerification(e) {
+            e.preventDefault();
+            const email = document.getElementById('forgotEmail').value.trim();
+            const otp = document.getElementById('otpCode').value.trim();
+            const newPassword = document.getElementById('newPassword').value;
+            
+            if (!email || !otp || !newPassword) {
+                showToast('يرجى ملء جميع الحقول', 'error');
+                return;
+            }
+            
+            if (newPassword.length < 6) {
+                showToast('كلمة المرور يجب أن تكون 6 أحرف على الأقل', 'error');
+                return;
+            }
+            
+            showLoading(true);
+            
+            try {
+                const result = await new Promise((resolve, reject) => {
+                    google.script.run
+                        .withSuccessHandler(resolve)
+                        .withFailureHandler(reject)
+                        .forgotPasswordVerify(email, otp, newPassword);
+                });
+                
+                if (result.success) {
+                    showToast(result.message, 'success');
+                    showSection('loginSection');
+                    document.getElementById('loginEmail').value = email;
+                } else {
+                    showToast(result.message, 'error');
+                }
+            } catch (error) {
+                console.error('OTP verification error:', error);
+                showToast('خطأ في الاتصال بالخادم', 'error');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        function logout() {
+            currentUser = null;
+            currentUserType = null;
+            allData = [];
+            filteredData = [];
+            
+            // Clear forms
+            document.querySelectorAll('form').forEach(form => form.reset());
+            
+            // Hide admin features
+            document.getElementById('addRecordBtn').classList.add('hidden');
+            document.getElementById('actionsHeader').classList.add('hidden');
+            
+            showSection('loginSection');
+            showToast('تم تسجيل الخروج بنجاح', 'success');
+        }
+
+        // Dashboard initialization
+        async function initializeDashboard() {
+            try {
+                showLoading(true);
+                
+                // Load dropdown options and data in parallel
+                await Promise.all([
+                    loadDropdownOptions(),
+                    loadSummaryStats(),
+                    loadData()
+                ]);
+                
+            } catch (error) {
+                console.error('Dashboard initialization error:', error);
+                showToast('خطأ في تحميل البيانات', 'error');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        async function loadDropdownOptions() {
+            try {
+                dropdownOptions = await new Promise((resolve, reject) => {
+                    google.script.run
+                        .withSuccessHandler(resolve)
+                        .withFailureHandler(reject)
+                        .getDropdownOptions();
+                });
+                
+                console.log('Dropdown options loaded:', dropdownOptions);
+                setupDropdowns();
+                
+            } catch (error) {
+                console.error('Error loading dropdown options:', error);
+                dropdownOptions = { filterGroup1: {}, filterGroup2: {} };
+            }
+        }
+
+        function setupDropdowns() {
+            // Destroy existing Tom-Select instances
+            Object.values(tomSelects).forEach(ts => {
+                if (ts && ts.destroy) {
+                    ts.destroy();
+                }
+            });
+            tomSelects = {};
+            
+            // Setup cascading dropdowns for student filters
+            setupCascadingDropdowns();
+            
+            // Initialize Tom-Select for all select elements
+            const selectElements = document.querySelectorAll('select');
+            selectElements.forEach(select => {
+                if (!tomSelects[select.id]) {
+                    tomSelects[select.id] = new TomSelect(select, {
+                        allowEmptyOption: true,
+                        placeholder: 'اختر...',
+                        searchField: ['text', 'value'],
+                        render: {
+                            no_results: function() {
+                                return '<div class="no-results">لا توجد نتائج</div>';
+                            }
+                        }
+                    });
+                }
+            });
+        }
+
+        function setupCascadingDropdowns() {
+            const specialiteSelect = document.getElementById('filterSpecialite');
+            const groupeSelect = document.getElementById('filterGroupe');
+            const nomSelect = document.getElementById('filterNom');
+            const communeSelect = document.getElementById('filterCommune');
+            const etabSelect = document.getElementById('filterEtab');
+            const encSelect = document.getElementById('filterEnc');
+            
+            // Clear existing options
+            [specialiteSelect, groupeSelect, nomSelect, communeSelect, etabSelect, encSelect].forEach(select => {
+                while (select.children.length > 1) {
+                    select.removeChild(select.lastChild);
+                }
+            });
+            
+            // Populate specialites
+            Object.keys(dropdownOptions.filterGroup1 || {}).forEach(specialite => {
+                const option = document.createElement('option');
+                option.value = specialite;
+                option.textContent = specialite;
+                specialiteSelect.appendChild(option);
+            });
+            
+            // Populate communes
+            Object.keys(dropdownOptions.filterGroup2 || {}).forEach(commune => {
+                const option = document.createElement('option');
+                option.value = commune;
+                option.textContent = commune;
+                communeSelect.appendChild(option);
+            });
+            
+            // Setup change handlers for cascading
+            specialiteSelect.addEventListener('change', function() {
+                updateGroupeOptions(this.value);
+                loadData();
+            });
+            
+            groupeSelect.addEventListener('change', function() {
+                updateNomOptions(document.getElementById('filterSpecialite').value, this.value);
+                loadData();
+            });
+            
+            nomSelect.addEventListener('change', loadData);
+            
+            communeSelect.addEventListener('change', function() {
+                updateEtabOptions(this.value);
+                loadData();
+            });
+            
+            etabSelect.addEventListener('change', function() {
+                updateEncOptions(document.getElementById('filterCommune').value, this.value);
+                loadData();
+            });
+            
+            encSelect.addEventListener('change', loadData);
+        }
+
+        function updateGroupeOptions(specialite) {
+            const groupeSelect = document.getElementById('filterGroupe');
+            const nomSelect = document.getElementById('filterNom');
+            
+            // Clear existing options
+            while (groupeSelect.children.length > 1) {
+                groupeSelect.removeChild(groupeSelect.lastChild);
+            }
+            while (nomSelect.children.length > 1) {
+                nomSelect.removeChild(nomSelect.lastChild);
+            }
+            
+            if (specialite && dropdownOptions.filterGroup1[specialite]) {
+                Object.keys(dropdownOptions.filterGroup1[specialite]).forEach(groupe => {
+                    const option = document.createElement('option');
+                    option.value = groupe;
+                    option.textContent = groupe;
+                    groupeSelect.appendChild(option);
+                });
+            }
+            
+            // Refresh Tom-Select instances
+            if (tomSelects['filterGroupe']) {
+                tomSelects['filterGroupe'].sync();
+            }
+            if (tomSelects['filterNom']) {
+                tomSelects['filterNom'].sync();
+            }
+        }
+
+        function updateNomOptions(specialite, groupe) {
+            const nomSelect = document.getElementById('filterNom');
+            
+            // Clear existing options
+            while (nomSelect.children.length > 1) {
+                nomSelect.removeChild(nomSelect.lastChild);
+            }
+            
+            if (specialite && groupe && dropdownOptions.filterGroup1[specialite] && dropdownOptions.filterGroup1[specialite][groupe]) {
+                dropdownOptions.filterGroup1[specialite][groupe].forEach(nom => {
+                    const option = document.createElement('option');
+                    option.value = nom;
+                    option.textContent = nom;
+                    nomSelect.appendChild(option);
+                });
+            }
+            
+            // Refresh Tom-Select instance
+            if (tomSelects['filterNom']) {
+                tomSelects['filterNom'].sync();
+            }
+        }
+
+        function updateEtabOptions(commune) {
+            const etabSelect = document.getElementById('filterEtab');
+            const encSelect = document.getElementById('filterEnc');
+            
+            // Clear existing options
+            while (etabSelect.children.length > 1) {
+                etabSelect.removeChild(etabSelect.lastChild);
+            }
+            while (encSelect.children.length > 1) {
+                encSelect.removeChild(encSelect.lastChild);
+            }
+            
+            if (commune && dropdownOptions.filterGroup2[commune]) {
+                Object.keys(dropdownOptions.filterGroup2[commune]).forEach(etab => {
+                    const option = document.createElement('option');
+                    option.value = etab;
+                    option.textContent = etab;
+                    etabSelect.appendChild(option);
+                });
+            }
+            
+            // Refresh Tom-Select instances
+            if (tomSelects['filterEtab']) {
+                tomSelects['filterEtab'].sync();
+            }
+            if (tomSelects['filterEnc']) {
+                tomSelects['filterEnc'].sync();
+            }
+        }
+
+        function updateEncOptions(commune, etab) {
+            const encSelect = document.getElementById('filterEnc');
+            
+            // Clear existing options
+            while (encSelect.children.length > 1) {
+                encSelect.removeChild(encSelect.lastChild);
+            }
+            
+            if (commune && etab && dropdownOptions.filterGroup2[commune] && dropdownOptions.filterGroup2[commune][etab]) {
+                dropdownOptions.filterGroup2[commune][etab].forEach(enc => {
+                    const option = document.createElement('option');
+                    option.value = enc;
+                    option.textContent = enc;
+                    encSelect.appendChild(option);
+                });
+            }
+            
+            // Refresh Tom-Select instance
+            if (tomSelects['filterEnc']) {
+                tomSelects['filterEnc'].sync();
+            }
+        }
+
+        async function loadSummaryStats() {
+            try {
+                const stats = await new Promise((resolve, reject) => {
+                    google.script.run
+                        .withSuccessHandler(resolve)
+                        .withFailureHandler(reject)
+                        .getSummaryStats(currentUser, currentUserType);
+                });
+                
+                document.getElementById('totalStudents').textContent = stats.totalStudents || 0;
+                document.getElementById('totalSpecialties').textContent = stats.totalSpecialties || 0;
+                document.getElementById('totalHours').textContent = stats.totalHours || 0;
+                document.getElementById('totalInstitutions').textContent = stats.totalInstitutions || 0;
+                
+            } catch (error) {
+                console.error('Error loading summary stats:', error);
+            }
+        }
+
+        async function loadData() {
+            try {
+                console.log('Loading data for user:', currentUser, 'type:', currentUserType);
+                
+                // Get filter values
+                const filterSpecialite = document.getElementById('filterSpecialite').value;
+                const filterGroupe = document.getElementById('filterGroupe').value;
+                const filterNom = document.getElementById('filterNom').value;
+                const filterCommune = document.getElementById('filterCommune').value;
+                const filterEtab = document.getElementById('filterEtab').value;
+                const filterEnc = document.getElementById('filterEnc').value;
+                const dateFrom = document.getElementById('dateFrom').value;
+                const dateTo = document.getElementById('dateTo').value;
+                
+                console.log('Filters:', {
+                    filterSpecialite, filterGroupe, filterNom, 
+                    filterCommune, filterEtab, filterEnc, 
+                    dateFrom, dateTo
+                });
+                
+                // Show loading in table
+                const tableBody = document.getElementById('dataTableBody');
+                tableBody.innerHTML = `
+                    <tr>
+                        <td colspan="11" class="center-align">
+                            <div class="preloader-wrapper active">
+                                <div class="spinner-layer spinner-blue-only">
+                                    <div class="circle-clipper left">
+                                        <div class="circle"></div>
+                                    </div>
+                                    <div class="gap-patch">
+                                        <div class="circle"></div>
+                                    </div>
+                                    <div class="circle-clipper right">
+                                        <div class="circle"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <p>جاري تحميل البيانات...</p>
+                        </td>
+                    </tr>
+                `;
+                
+                // Load data from server
+                allData = await new Promise((resolve, reject) => {
+                    google.script.run
+                        .withSuccessHandler(resolve)
+                        .withFailureHandler(reject)
+                        .getData(currentUser, currentUserType, filterSpecialite, filterGroupe, filterNom, filterCommune, filterEtab, filterEnc, dateFrom, dateTo);
+                });
+                
+                console.log('Data loaded from server:', allData.length, 'records');
+                
+                // Apply text search filter
+                const searchText = document.getElementById('searchText').value.toLowerCase().trim();
+                if (searchText) {
+                    filteredData = allData.filter(record => {
+                        return Object.values(record).some(value => 
+                            String(value).toLowerCase().includes(searchText)
+                        );
+                    });
+                } else {
+                    filteredData = [...allData];
+                }
+                
+                console.log('Filtered data:', filteredData.length, 'records');
+                
+                // Reset pagination
+                currentPage = 1;
+                
+                // Display data
+                displayData();
+                
+            } catch (error) {
+                console.error('Error loading data:', error);
+                const tableBody = document.getElementById('dataTableBody');
+                tableBody.innerHTML = `
+                    <tr>
+                        <td colspan="11" class="center-align red-text">
+                            خطأ في تحميل البيانات: ${error.message || 'خطأ غير معروف'}
+                        </td>
+                    </tr>
+                `;
+                showToast('خطأ في تحميل البيانات', 'error');
+            }
+        }
+
+        function displayData() {
+            const tableBody = document.getElementById('dataTableBody');
+            const startIndex = (currentPage - 1) * recordsPerPage;
+            const endIndex = startIndex + recordsPerPage;
+            const pageData = filteredData.slice(startIndex, endIndex);
+            
+            console.log('Displaying data:', pageData.length, 'records for page', currentPage);
+            
+            if (pageData.length === 0) {
+                tableBody.innerHTML = `
+                    <tr>
+                        <td colspan="11" class="center-align grey-text">
+                            <i class="material-icons" style="font-size: 3rem;">search_off</i>
+                            <p>لا توجد بيانات للعرض</p>
+                        </td>
+                    </tr>
+                `;
+            } else {
+                tableBody.innerHTML = pageData.map(record => {
+                    const actionsCell = currentUserType === 'Admin' ? `
+                        <td class="action-buttons">
+                            <button class="btn-small blue waves-effect waves-light" onclick="editRecord(${record.rowIndex})" title="تعديل">
+                                <i class="material-icons">edit</i>
+                            </button>
+                            <button class="btn-small red waves-effect waves-light" onclick="deleteRecord(${record.rowIndex})" title="حذف">
+                                <i class="material-icons">delete</i>
+                            </button>
+                        </td>
+                    ` : '';
+                    
+                    return `
+                        <tr>
+                            <td>${record.specialite || ''}</td>
+                            <td>${record.groupe || ''}</td>
+                            <td>${record.nomPrenom || ''}</td>
+                            <td>${record.cin || ''}</td>
+                            <td>${record.dateStage || ''}</td>
+                            <td>${record.nombreHeures || 0}</td>
+                            <td>${record.commune || ''}</td>
+                            <td>${record.etablissement || ''}</td>
+                            <td>${record.nomEncadrant || ''}</td>
+                            <td>${record.pprEncadrant || ''}</td>
+                            ${actionsCell}
+                        </tr>
+                    `;
+                }).join('');
+            }
+            
+            // Update pagination
+            updatePagination();
+        }
+
+        function updatePagination() {
+            const totalPages = Math.ceil(filteredData.length / recordsPerPage);
+            const pageInfo = document.getElementById('pageInfo');
+            const prevBtn = document.getElementById('prevBtn');
+            const nextBtn = document.getElementById('nextBtn');
+            
+            pageInfo.textContent = `صفحة ${currentPage} من ${totalPages || 1}`;
+            
+            prevBtn.disabled = currentPage <= 1;
+            nextBtn.disabled = currentPage >= totalPages;
+            
+            if (prevBtn.disabled) {
+                prevBtn.classList.add('disabled');
+            } else {
+                prevBtn.classList.remove('disabled');
+            }
+            
+            if (nextBtn.disabled) {
+                nextBtn.classList.add('disabled');
+            } else {
+                nextBtn.classList.remove('disabled');
+            }
+        }
+
+        function previousPage() {
+            if (currentPage > 1) {
+                currentPage--;
+                displayData();
+            }
+        }
+
+        function nextPage() {
+            const totalPages = Math.ceil(filteredData.length / recordsPerPage);
+            if (currentPage < totalPages) {
+                currentPage++;
+                displayData();
+            }
+        }
+
+        function clearFilters() {
+            // Clear all filter inputs
+            document.getElementById('filterSpecialite').value = '';
+            document.getElementById('filterGroupe').value = '';
+            document.getElementById('filterNom').value = '';
+            document.getElementById('filterCommune').value = '';
+            document.getElementById('filterEtab').value = '';
+            document.getElementById('filterEnc').value = '';
+            document.getElementById('dateFrom').value = '';
+            document.getElementById('dateTo').value = '';
+            document.getElementById('searchText').value = '';
+            
+            // Refresh Tom-Select instances
+            Object.values(tomSelects).forEach(ts => {
+                if (ts && ts.clear) {
+                    ts.clear();
+                }
+            });
+            
+            // Reload data
+            loadData();
+        }
+
+        // Export functions
+        function exportToCSV() {
+            if (filteredData.length === 0) {
+                showToast('لا توجد بيانات للتصدير', 'error');
+                return;
+            }
+            
+            const headers = ['التخصص', 'المجموعة', 'الاسم الكامل', 'ر.ب.و', 'تاريخ التدريب', 'عدد الساعات', 'الجماعة', 'المؤسسة', 'اسم المشرف', 'ر. تأجير المشرف'];
+            const csvContent = [
+                headers.join(','),
+                ...filteredData.map(record => [
+                    record.specialite,
+                    record.groupe,
+                    record.nomPrenom,
+                    record.cin,
+                    record.dateStage,
+                    record.nombreHeures,
+                    record.commune,
+                    record.etablissement,
+                    record.nomEncadrant,
+                    record.pprEncadrant
+                ].map(field => `"${String(field).replace(/"/g, '""')}"`).join(','))
+            ].join('\n');
+            
+            const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', `تصدير_البيانات_${new Date().toISOString().split('T')[0]}.csv`);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            showToast('تم تصدير البيانات بنجاح', 'success');
+        }
+
+        async function exportToPDF() {
+            if (filteredData.length === 0) {
+                showToast('لا توجد بيانات للتصدير', 'error');
+                return;
+            }
+            
+            showLoading(true);
+            
+            try {
+                const pdfUrl = await new Promise((resolve, reject) => {
+                    google.script.run
+                        .withSuccessHandler(resolve)
+                        .withFailureHandler(reject)
+                        .exportToPdf(filteredData);
+                });
+                
+                if (pdfUrl) {
+                    window.open(pdfUrl, '_blank');
+                    showToast('تم إنشاء ملف PDF بنجاح', 'success');
+                } else {
+                    showToast('خطأ في إنشاء ملف PDF', 'error');
+                }
+            } catch (error) {
+                console.error('PDF export error:', error);
+                showToast('خطأ في تصدير PDF', 'error');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        // Record management functions (Admin only)
+        function showAddModal() {
+            document.getElementById('modalTitle').textContent = 'إضافة سجل جديد';
+            document.getElementById('recordRowIndex').value = '';
+            document.getElementById('recordForm').reset();
+            
+            // Populate modal dropdowns
+            populateModalDropdowns();
+            
+            const modal = M.Modal.getInstance(document.getElementById('recordModal'));
+            modal.open();
+        }
+
+        function populateModalDropdowns() {
+            // Clear and populate specialite dropdown
+            const modalSpecialite = document.getElementById('modalSpecialite');
+            while (modalSpecialite.children.length > 1) {
+                modalSpecialite.removeChild(modalSpecialite.lastChild);
+            }
+            Object.keys(dropdownOptions.filterGroup1 || {}).forEach(specialite => {
+                const option = document.createElement('option');
+                option.value = specialite;
+                option.textContent = specialite;
+                modalSpecialite.appendChild(option);
+            });
+            
+            // Clear and populate commune dropdown
+            const modalCommune = document.getElementById('modalCommune');
+            while (modalCommune.children.length > 1) {
+                modalCommune.removeChild(modalCommune.lastChild);
+            }
+            Object.keys(dropdownOptions.filterGroup2 || {}).forEach(commune => {
+                const option = document.createElement('option');
+                option.value = commune;
+                option.textContent = commune;
+                modalCommune.appendChild(option);
+            });
+            
+            // Setup modal cascading dropdowns
+            setupModalCascading();
+            
+            // Refresh Tom-Select instances for modal
+            ['modalSpecialite', 'modalGroupe', 'modalNomPrenom', 'modalCommune', 'modalEtablissement', 'modalNomEncadrant'].forEach(id => {
+                if (tomSelects[id]) {
+                    tomSelects[id].sync();
+                }
+            });
+        }
+
+        function setupModalCascading() {
+            const modalSpecialite = document.getElementById('modalSpecialite');
+            const modalGroupe = document.getElementById('modalGroupe');
+            const modalNomPrenom = document.getElementById('modalNomPrenom');
+            const modalCommune = document.getElementById('modalCommune');
+            const modalEtablissement = document.getElementById('modalEtablissement');
+            const modalNomEncadrant = document.getElementById('modalNomEncadrant');
+            
+            modalSpecialite.addEventListener('change', function() {
+                updateModalGroupeOptions(this.value);
+            });
+            
+            modalGroupe.addEventListener('change', function() {
+                updateModalNomOptions(modalSpecialite.value, this.value);
+            });
+            
+            modalCommune.addEventListener('change', function() {
+                updateModalEtabOptions(this.value);
+            });
+            
+            modalEtablissement.addEventListener('change', function() {
+                updateModalEncOptions(modalCommune.value, this.value);
+            });
+        }
+
+        function updateModalGroupeOptions(specialite) {
+            const modalGroupe = document.getElementById('modalGroupe');
+            const modalNomPrenom = document.getElementById('modalNomPrenom');
+            
+            // Clear existing options
+            while (modalGroupe.children.length > 1) {
+                modalGroupe.removeChild(modalGroupe.lastChild);
+            }
+            while (modalNomPrenom.children.length > 1) {
+                modalNomPrenom.removeChild(modalNomPrenom.lastChild);
+            }
+            
+            if (specialite && dropdownOptions.filterGroup1[specialite]) {
+                Object.keys(dropdownOptions.filterGroup1[specialite]).forEach(groupe => {
+                    const option = document.createElement('option');
+                    option.value = groupe;
+                    option.textContent = groupe;
+                    modalGroupe.appendChild(option);
+                });
+            }
+            
+            // Refresh Tom-Select instances
+            if (tomSelects['modalGroupe']) {
+                tomSelects['modalGroupe'].sync();
+            }
+            if (tomSelects['modalNomPrenom']) {
+                tomSelects['modalNomPrenom'].sync();
+            }
+        }
+
+        function updateModalNomOptions(specialite, groupe) {
+            const modalNomPrenom = document.getElementById('modalNomPrenom');
+            
+            // Clear existing options
+            while (modalNomPrenom.children.length > 1) {
+                modalNomPrenom.removeChild(modalNomPrenom.lastChild);
+            }
+            
+            if (specialite && groupe && dropdownOptions.filterGroup1[specialite] && dropdownOptions.filterGroup1[specialite][groupe]) {
+                dropdownOptions.filterGroup1[specialite][groupe].forEach(nom => {
+                    const option = document.createElement('option');
+                    option.value = nom;
+                    option.textContent = nom;
+                    modalNomPrenom.appendChild(option);
+                });
+            }
+            
+            // Refresh Tom-Select instance
+            if (tomSelects['modalNomPrenom']) {
+                tomSelects['modalNomPrenom'].sync();
+            }
+        }
+
+        function updateModalEtabOptions(commune) {
+            const modalEtablissement = document.getElementById('modalEtablissement');
+            const modalNomEncadrant = document.getElementById('modalNomEncadrant');
+            
+            // Clear existing options
+            while (modalEtablissement.children.length > 1) {
+                modalEtablissement.removeChild(modalEtablissement.lastChild);
+            }
+            while (modalNomEncadrant.children.length > 1) {
+                modalNomEncadrant.removeChild(modalNomEncadrant.lastChild);
+            }
+            
+            if (commune && dropdownOptions.filterGroup2[commune]) {
+                Object.keys(dropdownOptions.filterGroup2[commune]).forEach(etab => {
+                    const option = document.createElement('option');
+                    option.value = etab;
+                    option.textContent = etab;
+                    modalEtablissement.appendChild(option);
+                });
+            }
+            
+            // Refresh Tom-Select instances
+            if (tomSelects['modalEtablissement']) {
+                tomSelects['modalEtablissement'].sync();
+            }
+            if (tomSelects['modalNomEncadrant']) {
+                tomSelects['modalNomEncadrant'].sync();
+            }
+        }
+
+        function updateModalEncOptions(commune, etab) {
+            const modalNomEncadrant = document.getElementById('modalNomEncadrant');
+            
+            // Clear existing options
+            while (modalNomEncadrant.children.length > 1) {
+                modalNomEncadrant.removeChild(modalNomEncadrant.lastChild);
+            }
+            
+            if (commune && etab && dropdownOptions.filterGroup2[commune] && dropdownOptions.filterGroup2[commune][etab]) {
+                dropdownOptions.filterGroup2[commune][etab].forEach(enc => {
+                    const option = document.createElement('option');
+                    option.value = enc;
+                    option.textContent = enc;
+                    modalNomEncadrant.appendChild(option);
+                });
+            }
+            
+            // Refresh Tom-Select instance
+            if (tomSelects['modalNomEncadrant']) {
+                tomSelects['modalNomEncadrant'].sync();
+            }
+        }
+
+        function editRecord(rowIndex) {
+            const record = allData.find(r => r.rowIndex === rowIndex);
+            if (!record) {
+                showToast('السجل غير موجود', 'error');
+                return;
+            }
+            
+            document.getElementById('modalTitle').textContent = 'تعديل السجل';
+            document.getElementById('recordRowIndex').value = rowIndex;
+            
+            // Populate form with record data
+            document.getElementById('modalSpecialite').value = record.specialite;
+            document.getElementById('modalGroupe').value = record.groupe;
+            document.getElementById('modalNomPrenom').value = record.nomPrenom;
+            document.getElementById('modalCin').value = record.cin;
+            document.getElementById('modalDateStage').value = record.dateStageRaw ? new Date(record.dateStageRaw).toISOString().split('T')[0] : '';
+            document.getElementById('modalNombreHeures').value = record.nombreHeures;
+            document.getElementById('modalCommune').value = record.commune;
+            document.getElementById('modalEtablissement').value = record.etablissement;
+            document.getElementById('modalNomEncadrant').value = record.nomEncadrant;
+            document.getElementById('modalPprEncadrant').value = record.pprEncadrant;
+            
+            // Populate modal dropdowns and update cascading options
+            populateModalDropdowns();
+            
+            // Update cascading dropdowns based on selected values
+            setTimeout(() => {
+                updateModalGroupeOptions(record.specialite);
+                setTimeout(() => {
+                    updateModalNomOptions(record.specialite, record.groupe);
+                }, 100);
+                updateModalEtabOptions(record.commune);
+                setTimeout(() => {
+                    updateModalEncOptions(record.commune, record.etablissement);
+                }, 100);
+            }, 100);
+            
+            const modal = M.Modal.getInstance(document.getElementById('recordModal'));
+            modal.open();
+        }
+
+        async function saveRecord() {
+            const form = document.getElementById('recordForm');
+            if (!form.checkValidity()) {
+                showToast('يرجى ملء جميع الحقول المطلوبة', 'error');
+                return;
+            }
+            
+            const rowIndex = document.getElementById('recordRowIndex').value;
+            const recordData = {
+                specialite: document.getElementById('modalSpecialite').value,
+                groupe: document.getElementById('modalGroupe').value,
+                nomPrenom: document.getElementById('modalNomPrenom').value,
+                cin: document.getElementById('modalCin').value,
+                dateStage: document.getElementById('modalDateStage').value,
+                nombreHeures: document.getElementById('modalNombreHeures').value,
+                commune: document.getElementById('modalCommune').value,
+                etablissement: document.getElementById('modalEtablissement').value,
+                nomEncadrant: document.getElementById('modalNomEncadrant').value,
+                pprEncadrant: document.getElementById('modalPprEncadrant').value,
+                rowIndex: rowIndex || null
+            };
+            
+            showLoading(true);
+            
+            try {
+                const result = await new Promise((resolve, reject) => {
+                    const operation = rowIndex ? 'updateRecord' : 'createRecord';
+                    google.script.run
+                        .withSuccessHandler(resolve)
+                        .withFailureHandler(reject)
+                        [operation](recordData, currentUser);
+                });
+                
+                if (result.success) {
+                    showToast(result.message, 'success');
+                    const modal = M.Modal.getInstance(document.getElementById('recordModal'));
+                    modal.close();
+                    await loadData();
+                    await loadSummaryStats();
+                } else {
+                    showToast(result.message, 'error');
+                }
+            } catch (error) {
+                console.error('Save record error:', error);
+                showToast('خطأ في حفظ السجل', 'error');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        async function deleteRecord(rowIndex) {
+            if (!confirm('هل أنت متأكد من حذف هذا السجل؟')) {
+                return;
+            }
+            
+            showLoading(true);
+            
+            try {
+                const result = await new Promise((resolve, reject) => {
+                    google.script.run
+                        .withSuccessHandler(resolve)
+                        .withFailureHandler(reject)
+                        .deleteRecord(rowIndex, currentUser);
+                });
+                
+                if (result.success) {
+                    showToast(result.message, 'success');
+                    await loadData();
+                    await loadSummaryStats();
+                } else {
+                    showToast(result.message, 'error');
+                }
+            } catch (error) {
+                console.error('Delete record error:', error);
+                showToast('خطأ في حذف السجل', 'error');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        // Utility functions
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+    </script>
+</body>
+</html>
